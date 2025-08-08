@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surxrat | Global Access Web</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tone.js for ambient sound -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+
+    <style>
+        /* Menggunakan font Poppins sebagai default */
+        body {
+            font-family: 'Poppins', sans-serif;
+            overflow: hidden; /* Mencegah scroll pada tampilan utama */
+        }
+        
+        /* Efek latar belakang gradien animasi */
+        .animated-gradient {
+            background: linear-gradient(-45deg, #0f0c29, #302b63, #24243e, #0f172a);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Efek kaca (Glassmorphism) */
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* Custom scrollbar untuk galeri */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body class="animated-gradient text-white">
+
+    <!-- Kontainer Utama -->
+    <div id="app-container" class="h-screen w-screen flex items-center justify-center p-4">
+
+        <!-- Tampilan Awal: Tombol Izin -->
+        <div id="initial-view" class="text-center">
+            <h1 class="text-4xl md:text-6xl font-bold mb-4">Surxrat</h1>
+            <p class="text-lg md:text-xl text-gray-300 mb-8">Global Access Web</p>
+            <button id="permission-button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105">
+                Izinkan Website Dibuka
+            </button>
+        </div>
+
+        <!-- Tampilan Utama: Setelah Izin Diberikan -->
+        <div id="main-content" class="hidden w-full h-full max-w-6xl glass-effect rounded-2xl p-6 md:p-8 flex flex-col">
+            <h2 class="text-2xl font-bold mb-6 text-center">Dasbor Akses Global</h2>
+            
+            <!-- Info Lokasi -->
+            <div class="mb-6 p-4 glass-effect rounded-lg">
+                <h3 class="font-semibold text-lg mb-2">Informasi Lokasi Anda</h3>
+                <div id="location-info" class="flex items-center justify-center min-h-[60px]">
+                    <!-- Loader -->
+                    <div id="loader" class="hidden animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                    <!-- Data Lokasi -->
+                    <div id="location-data" class="hidden text-center">
+                        <p id="coords" class="text-gray-200"></p>
+                        <p id="location-name" class="font-bold text-xl"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Galeri Gambar -->
+            <div class="flex-grow flex flex-col p-4 glass-effect rounded-lg overflow-hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-semibold text-lg">Galeri Gambar Anda</h3>
+                    <button id="upload-button" class="bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded-lg transition-transform transform hover:scale-105">
+                        Unggah Gambar
+                    </button>
+                    <input type="file" id="image-upload" multiple accept="image/*" class="hidden">
+                </div>
+                <div id="gallery-grid" class="flex-grow grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 overflow-y-auto custom-scrollbar pr-2">
+                    <!-- Preview gambar akan muncul di sini -->
+                    <p id="gallery-placeholder" class="col-span-full text-center text-gray-400 self-center">Pilih gambar untuk ditampilkan di sini.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modal Konfirmasi Custom -->
+    <div id="custom-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="glass-effect rounded-lg p-8 shadow-2xl text-center max-w-sm mx-4">
+            <h3 class="text-xl font-bold mb-4">Izinkan Akses?</h3>
+            <p class="text-gray-300 mb-6">Aplikasi ini memerlukan akses ke lokasi Anda untuk berfungsi sepenuhnya. Data Anda tidak akan dibagikan.</p>
+            <div class="flex justify-center gap-4">
+                <button id="confirm-no" class="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-6 rounded-lg">Batalkan</button>
+                <button id="confirm-yes" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg">Ya, Lanjutkan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Custom untuk Notifikasi -->
+    <div id="custom-alert" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="glass-effect rounded-lg p-8 shadow-2xl text-center max-w-sm mx-4">
+            <p id="alert-message" class="text-lg mb-6"></p>
+            <button id="alert-ok" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-8 rounded-lg">OK</button>
+        </div>
+    </div>
+
+    <!-- Menghubungkan file JavaScript -->
+    <script src="function.js"></script>
+</body>
+</html>
