@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 Not Found</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+        
+        body {
+            background-color: #000;
+            color: #00ff41;
+            font-family: 'VT323', monospace;
+            font-size: 1.2rem;
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin: 0;
+            text-shadow: 0 0 5px #00ff41;
+        }
+
+        p {
+            margin: 0.5rem 0;
+        }
+
+        .prompt {
+            display: flex;
+            align-items: center;
+        }
+
+        .cursor {
+            width: 10px;
+            height: 1.5rem;
+            background-color: #00ff41;
+            animation: blink 1s step-end infinite;
+            margin-left: 8px;
+            box-shadow: 0 0 5px #00ff41;
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>SYSTEM ERROR: 404</h1>
+    <p>File or directory not found.</p>
+    <p>The resource you are looking for might have been removed, had its name changed, or is temporarily unavailable.</p>
+    <br>
+    <p>--//--</p>
+    <p>Deface by LanaVyn</p>
+    <p>--//--</p>
+    <br>
+    <div class="prompt">
+        <span>root@lanavyn:~#</span>
+        <div class="cursor"></div>
+    </div>
+</body>
+</html>
