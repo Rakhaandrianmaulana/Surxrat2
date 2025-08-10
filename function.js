@@ -1,193 +1,169 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // --- Seleksi Elemen DOM ---
-    const permissionButton = document.getElementById('permission-button');
-    const initialView = document.getElementById('initial-view');
-    const mainContent = document.getElementById('main-content');
+// --- CONFIGURATION ---
+// This is a new, stable public database URL from jsonblob.com.
+const DATABASE_URL = 'https://jsonblob.com/api/jsonBlob/1276205847623958528';
+
+// --- DOM ELEMENTS ---
+const clockElement = document.getElementById('live-clock');
+const reviewForm = document.getElementById('review-form');
+const reviewText = document.getElementById('review-text');
+const ratingSlider = document.getElementById('rating-slider');
+const ratingValue = document.getElementById('rating-value');
+const reviewsList = document.getElementById('reviews-list');
+const averageRatingDisplay = document.getElementById('average-rating');
+const reviewCountDisplay = document.getElementById('review-count');
+const loadingReviews = document.getElementById('loading-reviews');
+const modal = document.getElementById('message-modal');
+const modalText = document.getElementById('modal-text');
+const submitButton = document.getElementById('submit-button');
+
+// --- HELPER FUNCTIONS ---
+function showModal(message) {
+    modalText.textContent = message;
+    modal.classList.remove('hidden');
+}
+
+function updateClock() {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    if (clockElement) {
+        clockElement.textContent = `${hours}:${minutes}:${seconds}`;
+    }
+}
+
+function renderReviews(reviews) {
+    if (!loadingReviews || !reviewsList) return;
+
+    loadingReviews.style.display = 'none';
+    reviewsList.innerHTML = '';
     
-    // Elemen Modal
-    const customModal = document.getElementById('custom-modal');
-    const confirmYes = document.getElementById('confirm-yes');
-    const confirmNo = document.getElementById('confirm-no');
+    let totalRating = 0;
 
-    // Elemen Alert
-    const customAlert = document.getElementById('custom-alert');
-    const alertMessage = document.getElementById('alert-message');
-    const alertOk = document.getElementById('alert-ok');
+    // Sort reviews from newest to oldest
+    reviews.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    // Elemen Konten Utama
-    const loader = document.getElementById('loader');
-    const locationData = document.getElementById('location-data');
-    const coordsEl = document.getElementById('coords');
-    const locationNameEl = document.getElementById('location-name');
-    
-    // Elemen Galeri
-    const uploadButton = document.getElementById('upload-button');
-    const imageUpload = document.getElementById('image-upload');
-    const galleryGrid = document.getElementById('gallery-grid');
-    const galleryPlaceholder = document.getElementById('gallery-placeholder');
+    if (reviews.length > 0) {
+        reviews.forEach(review => totalRating += review.rating);
+        const averageRating = (totalRating / reviews.length).toFixed(1);
+        averageRatingDisplay.textContent = averageRating;
+        reviewCountDisplay.textContent = `Berdasarkan ${reviews.length} ulasan`;
 
-    let ambientSynth;
-
-    // --- Fungsi Bantuan ---
-
-    /**
-     * Menampilkan alert custom dengan pesan tertentu.
-     * @param {string} message - Pesan yang akan ditampilkan.
-     */
-    const showAlert = (message) => {
-        alertMessage.textContent = message;
-        customAlert.classList.remove('hidden');
-    };
-
-    /**
-     * Menyembunyikan alert custom.
-     */
-    const hideAlert = () => {
-        customAlert.classList.add('hidden');
-    };
-
-    /**
-     * Memulai dan memainkan audio ambient menggunakan Tone.js.
-     * Audio hanya akan dimulai setelah interaksi pengguna pertama.
-     */
-    const startAmbientSound = async () => {
-        await Tone.start();
-        // Membuat synth dengan efek reverb untuk suara yang lebih luas
-        const reverb = new Tone.Reverb(5).toDestination();
-        ambientSynth = new Tone.MonoSynth({
-            oscillator: { type: 'sine' },
-            envelope: { attack: 2, release: 4 },
-            filterEnvelope: { attack: 1, baseFrequency: 100, octaves: 3 }
-        }).connect(reverb);
-
-        // Membuat loop nada rendah yang menenangkan
-        const loop = new Tone.Loop(time => {
-            ambientSynth.triggerAttackRelease('C2', '2m', time);
-        }, '4m').start(0);
-
-        Tone.Transport.start();
-        console.log('Ambient sound started.');
-    };
-
-    // --- Logika Utama ---
-
-    /**
-     * Menangani permintaan izin lokasi dan menampilkan data.
-     */
-    const handlePermissionRequest = () => {
-        customModal.classList.add('hidden');
-        initialView.classList.add('hidden');
-        mainContent.classList.remove('hidden');
-        loader.classList.remove('hidden');
-        locationData.classList.add('hidden');
-
-        // Memulai audio setelah izin diberikan
-        startAmbientSound();
-
-        if (!navigator.geolocation) {
-            loader.classList.add('hidden');
-            showAlert('Geolocation tidak didukung oleh browser Anda.');
-            return;
-        }
-
-        navigator.geolocation.getCurrentPosition(
-            async (position) => {
-                const { latitude, longitude } = position.coords;
-                coordsEl.textContent = `Koordinat: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-                
-                // Mengambil nama lokasi dari API
-                try {
-                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
-                    if (!response.ok) throw new Error('Gagal mengambil data lokasi.');
-                    
-                    const data = await response.json();
-                    const city = data.address.city || data.address.town || data.address.village || 'Lokasi tidak diketahui';
-                    const country = data.address.country || '';
-                    locationNameEl.textContent = `${city}, ${country}`;
-                } catch (error) {
-                    console.error('Error fetching location name:', error);
-                    locationNameEl.textContent = 'Tidak dapat mengambil nama lokasi.';
-                } finally {
-                    loader.classList.add('hidden');
-                    locationData.classList.remove('hidden');
-                }
-            },
-            (error) => {
-                loader.classList.add('hidden');
-                let message = 'Terjadi kesalahan saat mengambil lokasi.';
-                switch (error.code) {
-                    case error.PERMISSION_DENIED:
-                        message = 'Anda menolak izin akses lokasi.';
-                        break;
-                    case error.POSITION_UNAVAILABLE:
-                        message = 'Informasi lokasi tidak tersedia.';
-                        break;
-                    case error.TIMEOUT:
-                        message = 'Waktu permintaan lokasi habis.';
-                        break;
-                }
-                showAlert(message);
-                locationNameEl.textContent = 'Akses lokasi ditolak.';
-                locationData.classList.remove('hidden');
-            }
-        );
-    };
-
-    /**
-     * Menangani pemilihan file gambar dan menampilkannya di grid.
-     * @param {Event} event - Event dari input file.
-     */
-    const handleImageUpload = (event) => {
-        const files = event.target.files;
-        if (files.length === 0) {
-            return;
-        }
-
-        // Sembunyikan placeholder jika ada gambar
-        if (galleryPlaceholder) {
-            galleryPlaceholder.classList.add('hidden');
-        }
-
-        // Proses setiap file yang dipilih
-        Array.from(files).forEach(file => {
-            if (!file.type.startsWith('image/')) {
-                return; // Lewati file yang bukan gambar
-            }
-
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const imgContainer = document.createElement('div');
-                imgContainer.className = 'aspect-square bg-black/20 rounded-lg overflow-hidden animate-fade-in';
-                
-                const img = document.createElement('img');
-                img.src = e.target.result;
-                img.className = 'w-full h-full object-cover';
-                
-                imgContainer.appendChild(img);
-                galleryGrid.appendChild(imgContainer);
-            };
-            reader.readAsDataURL(file);
+        reviews.forEach(reviewData => {
+            const reviewElement = document.createElement('div');
+            reviewElement.className = 'bg-white/10 p-3 rounded-lg';
+            
+            const textElement = document.createElement('p');
+            textElement.className = 'text-gray-200';
+            textElement.textContent = reviewData.text;
+            
+            const ratingElement = document.createElement('p');
+            ratingElement.className = 'text-xs text-cyan-400 font-bold mt-2 text-right';
+            ratingElement.textContent = `Peringkat: ${reviewData.rating}/100`;
+            
+            reviewElement.appendChild(textElement);
+            reviewElement.appendChild(ratingElement);
+            reviewsList.appendChild(reviewElement);
         });
-    };
 
+    } else {
+        averageRatingDisplay.textContent = '0';
+        reviewCountDisplay.textContent = 'Belum ada ulasan';
+        reviewsList.innerHTML = '<p class="text-center text-gray-400">Jadilah yang pertama memberi ulasan!</p>';
+    }
+}
 
-    // --- Event Listeners ---
-    permissionButton.addEventListener('click', () => {
-        customModal.classList.remove('hidden');
+// --- DATABASE FUNCTIONS ---
+async function loadReviews() {
+    try {
+        const response = await fetch(DATABASE_URL);
+        if (!response.ok) {
+            // If the database is empty (404), we treat it as an empty review list
+            if (response.status === 404) {
+                return [];
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data.reviews || []; 
+    } catch (error) {
+        console.error("Error loading reviews:", error);
+        showModal("Gagal memuat ulasan dari database.");
+        return []; // Return empty array on failure
+    }
+}
+
+async function saveReview(newReview) {
+    submitButton.disabled = true;
+    submitButton.textContent = 'Mengirim...';
+
+    try {
+        // 1. Get the current list of reviews
+        const existingReviews = await loadReviews();
+        
+        // 2. Add the new review
+        existingReviews.push(newReview);
+        
+        // 3. Save the entire updated list back to the database
+        const response = await fetch(DATABASE_URL, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ reviews: existingReviews }),
+        });
+
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
+        showModal("Terima kasih atas ulasan Anda!");
+        renderReviews(existingReviews);
+        reviewForm.reset();
+        ratingValue.textContent = '50';
+
+    } catch (error) {
+        console.error("Error saving review:", error);
+        showModal("Gagal menyimpan ulasan ke database.");
+    } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Kirim Ulasan';
+    }
+}
+
+// --- INITIALIZATION ---
+async function startApp() { 
+    // Start the clock
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // Initial load of reviews
+    const reviews = await loadReviews();
+    renderReviews(reviews);
+
+    // Handle form submission
+    reviewForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const reviewContent = reviewText.value.trim();
+        const rating = parseInt(ratingSlider.value, 10);
+
+        if (!reviewContent) {
+            showModal("Ulasan tidak boleh kosong.");
+            return;
+        }
+
+        const newReview = {
+            text: reviewContent,
+            rating: rating,
+            createdAt: new Date().toISOString(),
+        };
+
+        saveReview(newReview);
     });
-
-    confirmYes.addEventListener('click', handlePermissionRequest);
-
-    confirmNo.addEventListener('click', () => {
-        customModal.classList.add('hidden');
-        showAlert('Akses dibatalkan. Beberapa fitur mungkin tidak berfungsi.');
+    
+    // Update slider value display
+    ratingSlider.addEventListener('input', () => {
+        ratingValue.textContent = ratingSlider.value;
     });
+}
 
-    alertOk.addEventListener('click', hideAlert);
-
-    uploadButton.addEventListener('click', () => {
-        imageUpload.click(); // Memicu dialog pemilihan file
-    });
-
-    imageUpload.addEventListener('change', handleImageUpload);
-});
+// Run app initialization when the script is loaded
+startApp();
